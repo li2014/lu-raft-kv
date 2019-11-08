@@ -24,7 +24,7 @@ public class RaftNodeBootStrap {
         String[] peerAddr = {"localhost:8775","localhost:8776","localhost:8777", "localhost:8778", "localhost:8779"};
 
         NodeConfig config = new NodeConfig();
-
+        System.out.println("port:"+System.getProperty("serverPort"));
         // 自身节点
         config.setSelfPort(Integer.valueOf(System.getProperty("serverPort")));
 

@@ -246,20 +246,22 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
         LOGGER.warn("handlerClientRequest handler {} operation,  and key : [{}], value : [{}]",
             ClientKVReq.Type.value(request.getType()), request.getKey(), request.getValue());
 
+        //不是领导就放给领导处理
         if (status != LEADER) {
             LOGGER.warn("I not am leader , only invoke redirect method, leader addr : {}, my addr : {}",
                 peerSet.getLeader(), peerSet.getSelf().getAddr());
             return redirect(request);
         }
-
+        //处理读请求
         if (request.getType() == ClientKVReq.GET) {
+            //所有节点都一致的数据都在状态机里面储存着,直接get获取
             LogEntry logEntry = stateMachine.get(request.getKey());
             if (logEntry != null) {
                 return new ClientKVAck(logEntry.getCommand());
             }
             return new ClientKVAck(null);
         }
-
+        //
         LogEntry logEntry = LogEntry.newBuilder()
             .command(Command.newBuilder().
                 key(request.getKey()).
@@ -287,7 +289,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
         CountDownLatch latch = new CountDownLatch(futureList.size());
         List<Boolean> resultList = new CopyOnWriteArrayList<>();
-
+        //检测同步日志的结果怎么样
         getRPCAppendResult(futureList, latch, resultList);
 
         try {
@@ -598,6 +600,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                             .build();
 
                         try {
+                            //请求投票 我要竞选总统
                             @SuppressWarnings("unchecked")
                             Response<RvoteResult> response = getRpcClient().send(request);
                             return response;
@@ -614,7 +617,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             CountDownLatch latch = new CountDownLatch(futureArrayList.size());
 
             LOGGER.info("futureArrayList.size() : {}", futureArrayList.size());
-            // 等待结果.
+            // 等待结果. 投票竞选
             for (Future future : futureArrayList) {
                 RaftThreadPool.submit(new Callable() {
                     @Override
@@ -649,7 +652,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             }
 
             try {
-                // 稍等片刻
+                // 稍等片刻,统计选举结果产生
                 latch.await(3500, MILLISECONDS);
             } catch (InterruptedException e) {
                 LOGGER.warn("InterruptedException By Master election Task");

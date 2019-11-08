@@ -40,10 +40,12 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
         node.peerSet.getPeersWithOutSelf().add(newPeer);
 
         if (node.status == NodeStatus.LEADER) {
+            //设置新增节点的日志索引节点
             node.nextIndexs.put(newPeer, 0L);
             node.matchIndexs.put(newPeer, 0L);
 
             for (long i = 0; i < node.logModule.getLastIndex(); i++) {
+                //同步所有日志给新成员节点
                 LogEntry e = node.logModule.read(i);
                 if (e != null) {
                     node.replication(newPeer, e);
